@@ -1,0 +1,50 @@
+pipeline {
+    agent any
+
+    environment {
+        DOCKER_DEV_REPO = 'elangoeaswaramoorthy/dev'
+        DOCKER_PROD_REPO = 'elangoeaswaramoorthy/prod'
+        DOCKER_CREDENTIALS_ID = 'dockerHub'
+    }
+
+    stages {
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    // Check if we are on the dev branch or master
+                    if (env.BRANCH_NAME == 'dev') {
+                        echo "Building Docker image for dev environment"
+                        sh 'docker build -t myapp:dev .'
+                    } else if (env.BRANCH_NAME == 'master') {
+                        echo "Building Docker image for prod environment"
+                        sh 'docker build -t myapp:prod .'
+                    }
+                }
+            }
+        }
+
+        stage('Push Docker Image') {
+            steps {
+                script {
+                    if (env.BRANCH_NAME == 'dev') {
+                        // Log in to Docker Hub and push the image to the dev repo
+                        echo "Pushing Docker image to dev repository"
+                        sh "docker tag myapp:dev ${DOCKER_DEV_REPO}:dev"
+                        withCredentials([usernamePassword(credentialsId: DOCKER_CREDENTIALS_ID, passwordVariable: 'DOCKER_PASSWORD', usernameVariable: 'DOCKER_USERNAME')]) {
+                            sh 'echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin'
+                            sh "docker push ${DOCKER_DEV_REPO}:dev"
+                        }
+                    } else if (env.BRANCH_NAME == 'master') {
+                        // Log in to Docker Hub and push the image to the prod repo
+                        echo "Pushing Docker image to prod repository"
+                        sh "docker tag myapp:prod ${DOCKER_PROD_REPO}:latest"
+                        withCredentials([usernamePassword(credentialsId: DOCKER_CREDENTIALS_ID, passwordVariable: 'DOCKER_PASSWORD', usernameVariable: 'DOCKER_USERNAME')]) {
+                            sh 'echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin'
+                            sh "docker push ${DOCKER_PROD_REPO}:latest"
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
