@@ -29,7 +29,7 @@ pipeline {
                     if (env.BRANCH_NAME == 'dev') {
                         // Log in to Docker Hub and push the image to the dev repo
                         echo "Pushing Docker image to dev repository"
-                        sh "docker tag myapp:dev ${DOCKER_DEV_REPO}:dev"
+                        sh "docker tag myapp:dev ${DOCKER_DEV_REPO}:1.0.0.1"
                         withCredentials([usernamePassword(credentialsId: DOCKER_CREDENTIALS_ID, passwordVariable: 'DOCKER_PASSWORD', usernameVariable: 'DOCKER_USERNAME')]) {
                             sh 'echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin'
                             sh "docker push ${DOCKER_DEV_REPO}:dev"
@@ -37,7 +37,7 @@ pipeline {
                     } else if (env.BRANCH_NAME == 'master') {
                         // Log in to Docker Hub and push the image to the prod repo
                         echo "Pushing Docker image to prod repository"
-                        sh "docker tag myapp:prod ${DOCKER_PROD_REPO}:latest"
+                        sh "docker tag myapp:prod ${DOCKER_PROD_REPO}:1.0.0.1"
                         withCredentials([usernamePassword(credentialsId: DOCKER_CREDENTIALS_ID, passwordVariable: 'DOCKER_PASSWORD', usernameVariable: 'DOCKER_USERNAME')]) {
                             sh 'echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin'
                             sh "docker push ${DOCKER_PROD_REPO}:latest"
