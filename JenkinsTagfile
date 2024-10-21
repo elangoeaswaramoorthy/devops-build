@@ -1,0 +1,43 @@
+pipeline {
+    agent any
+    environment {
+        DOCKER_CREDENTIALS = credentials('dockerHub') // Docker Hub credentials in Jenkins
+        DEV_REPO = 'elangoeaswaramoorthy/dev'
+        PROD_REPO = 'elangoeaswaramoorthy/prod'
+        IMAGE_NAME = 'my-application'
+        BRANCH_NAME = "${env.GIT_BRANCH}"
+    }
+    stages {
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    def dockerTag = getNextDockerTag()
+
+                    // Build the Docker image
+                    sh "docker build -t ${IMAGE_NAME}:${dockerTag} ."
+                    
+                    // Push to dev repo if on the dev branch
+                    if (BRANCH_NAME == 'dev') {
+                        echo "Pushing to dev repo"
+                        sh "docker tag ${IMAGE_NAME}:${dockerTag} ${DEV_REPO}:${dockerTag}"
+                        sh "docker push ${DEV_REPO}:${dockerTag}"
+                    }
+                    
+                    // Push to prod repo if on the master branch
+                    else if (BRANCH_NAME == 'master') {
+                        echo "Pushing to prod repo"
+                        sh "docker tag ${IMAGE_NAME}:${dockerTag} ${PROD_REPO}:${dockerTag}"
+                        sh "docker push ${PROD_REPO}:${dockerTag}"
+                    }
+                }
+            }
+        }
+    }
+}
+
+// Helper function to get the next tag from Docker Hub
+def getNextDockerTag() {
+    def currentTag = sh(script: "docker images ${IMAGE_NAME} --format '{{.Tag}}' | sort -V | tail -n 1", returnStdout: true).trim()
+    def nextTag = (currentTag == "" ? 1 : currentTag.toInteger() + 1)
+    return nextTag
+}
